@@ -148,6 +148,8 @@ export interface WebviewElements {
   messagesEl: HTMLElement;
   inputEl: HTMLTextAreaElement;
   sendBtn: HTMLButtonElement;
+  settingsBtn: HTMLButtonElement;
+  formatBtn: HTMLButtonElement;
   statusDot: HTMLElement;
   statusText: HTMLElement;
   agentSelector: HTMLSelectElement;
@@ -164,6 +166,8 @@ export function getElements(doc: Document): WebviewElements {
     messagesEl: doc.getElementById("messages")!,
     inputEl: doc.getElementById("input") as HTMLTextAreaElement,
     sendBtn: doc.getElementById("send") as HTMLButtonElement,
+    settingsBtn: doc.getElementById("settings-btn") as HTMLButtonElement,
+    formatBtn: doc.getElementById("format-btn") as HTMLButtonElement,
     statusDot: doc.getElementById("status-dot")!,
     statusText: doc.getElementById("status-text")!,
     agentSelector: doc.getElementById("agent-selector") as HTMLSelectElement,
@@ -226,13 +230,28 @@ export class WebviewController {
   }
 
   private setupEventListeners(): void {
-    const { sendBtn, inputEl, messagesEl, connectBtn, welcomeConnectBtn } =
-      this.elements;
+    const {
+      sendBtn,
+      settingsBtn,
+      formatBtn,
+      inputEl,
+      messagesEl,
+      connectBtn,
+      welcomeConnectBtn,
+    } = this.elements;
     const { agentSelector, modeSelector, modelSelector } = this.elements;
 
     const { commandAutocomplete } = this.elements;
 
     sendBtn.addEventListener("click", () => this.send());
+
+    settingsBtn.addEventListener("click", () => {
+      this.vscode.postMessage({ type: "clearChat" });
+    });
+
+    formatBtn.addEventListener("click", () => {
+      // Placeholder for format action
+    });
 
     inputEl.addEventListener("keydown", (e) => {
       const isAutocompleteVisible =
@@ -281,7 +300,7 @@ export class WebviewController {
 
     inputEl.addEventListener("input", () => {
       inputEl.style.height = "auto";
-      inputEl.style.height = Math.min(inputEl.scrollHeight, 120) + "px";
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 200) + "px";
       this.updateAutocomplete();
       this.saveState();
     });
@@ -652,6 +671,8 @@ export class WebviewController {
         this.messageTexts.clear();
         modeSelector.style.display = "none";
         modelSelector.style.display = "none";
+        const prefixEl = this.doc.getElementById("input-prefix");
+        if (prefixEl) prefixEl.style.display = "none";
         this.availableCommands = [];
         this.hideCommandAutocomplete();
         this.updateViewState();
@@ -684,8 +705,17 @@ export class WebviewController {
             modeSelector.appendChild(opt);
           });
           updateSelectLabel(modeSelector, "Mode");
+
+          const prefixEl = this.doc.getElementById("input-prefix");
+          const modeNameEl = this.doc.getElementById("mode-name");
+          if (prefixEl && modeNameEl && msg.modes.currentModeId) {
+            prefixEl.style.display = "flex";
+            modeNameEl.textContent = msg.modes.currentModeId;
+          }
         } else {
           modeSelector.style.display = "none";
+          const prefixEl = this.doc.getElementById("input-prefix");
+          if (prefixEl) prefixEl.style.display = "none";
         }
 
         if (hasModels && msg.models) {
@@ -713,6 +743,13 @@ export class WebviewController {
         if (msg.modeId) {
           modeSelector.value = msg.modeId;
           updateSelectLabel(modeSelector, "Mode");
+
+          const prefixEl = this.doc.getElementById("input-prefix");
+          const modeNameEl = this.doc.getElementById("mode-name");
+          if (prefixEl && modeNameEl) {
+            prefixEl.style.display = "flex";
+            modeNameEl.textContent = msg.modeId;
+          }
         }
         break;
       case "availableCommands":

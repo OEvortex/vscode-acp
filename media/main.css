@@ -352,12 +352,14 @@ body {
 
 /* Input Container */
 #input-container {
-  padding: 8px var(--container-padding);
+  padding: 12px var(--container-padding);
   border-top: 1px solid var(--vscode-panel-border);
   display: flex;
+  flex-direction: column;
   gap: 8px;
   flex-shrink: 0;
   position: relative;
+  background: var(--vscode-sideBar-background);
 }
 
 /* Command Autocomplete */
@@ -366,7 +368,7 @@ body {
   bottom: 100%;
   left: var(--container-padding);
   right: var(--container-padding);
-  margin-bottom: 4px;
+  margin-bottom: 8px;
   background: var(--vscode-dropdown-background);
   border: 1px solid var(--vscode-dropdown-border);
   border-radius: 6px;
@@ -459,16 +461,164 @@ body {
   font-size: 12px;
 }
 
+.input-box-outer {
+  display: flex;
+  flex-direction: column;
+  background: var(--vscode-input-background);
+  border: 1px solid var(--vscode-input-border);
+  border-radius: 12px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+}
+
+.input-box-outer:hover {
+  border-color: var(--vscode-input-border);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+
+.input-box-outer:focus-within {
+  border-color: var(--vscode-focusBorder);
+  box-shadow: 0 4px 12px var(--vscode-widget-shadow);
+  background: var(--vscode-input-background);
+}
+
 #input {
-  flex: 1;
+  width: 100%;
+  border: none;
+  background: transparent;
+  padding: 12px 14px;
+  padding-bottom: 44px; /* Space for actions */
+  font-family: var(--vscode-font-family);
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--vscode-input-foreground);
   resize: none;
-  min-height: 36px;
-  max-height: 120px;
+  min-height: 44px;
+  max-height: 200px;
+  outline: none;
+  scrollbar-width: thin;
+}
+
+#input::placeholder {
+  color: var(--vscode-input-placeholderForeground);
+  opacity: 0.7;
+}
+
+.input-actions {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  padding: 2px;
+  background: var(--vscode-input-background);
+  border-radius: 6px;
+}
+
+.icon-button {
+  background: transparent;
+  border: none;
+  color: var(--vscode-icon-foreground);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.icon-button:hover {
+  background: var(--vscode-toolbar-hoverBackground);
+  color: var(--vscode-foreground);
+}
+
+.icon-button:active {
+  transform: scale(0.92);
+}
+
+.icon-button.primary {
+  background: var(--vscode-button-background);
+  color: var(--vscode-button-foreground);
+}
+
+.icon-button.primary:hover {
+  background: var(--vscode-button-hoverBackground);
+  color: var(--vscode-button-foreground);
+}
+
+.icon-button.primary:disabled {
+  background: var(--vscode-button-secondaryBackground);
+  color: var(--vscode-button-secondaryForeground);
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.input-hint {
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+  padding: 0 8px;
+  margin-top: 4px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.input-box-outer:focus-within + .input-hint {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.input-box-outer:focus-within #input {
+  padding-bottom: 44px;
+}
+
+/* Mode Badge (Prefix Slot) */
+.input-prefix {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px 0 12px;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--vscode-descriptionForeground);
+}
+
+.mode-badge {
+  background: var(--vscode-badge-background);
+  color: var(--vscode-badge-foreground);
+  padding: 1px 6px;
+  border-radius: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.token-count {
+  font-size: 10px;
+  color: var(--vscode-descriptionForeground);
+  margin-right: 8px;
+  opacity: 0.7;
+  font-family: var(--vscode-editor-font-family), monospace;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
 }
 
 #send {
-  padding: 8px 16px;
-  align-self: flex-end;
+  /* Overridden by icon-button styles but kept for compatibility */
 }
 
 /* Options Bar */

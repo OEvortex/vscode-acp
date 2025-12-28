@@ -372,6 +372,16 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
     const styleMainUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, "media", "main.css")
     );
+    const codiconsUri = webview.asWebviewUri(
+      vscode.Uri.joinPath(
+        this.extensionUri,
+        "node_modules",
+        "@vscode",
+        "codicons",
+        "dist",
+        "codicon.css"
+      )
+    );
     const webviewScriptUri = webview.asWebviewUri(
       vscode.Uri.joinPath(this.extensionUri, "dist", "webview.js")
     );
@@ -381,9 +391,10 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; script-src ${webview.cspSource};">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src ${webview.cspSource}; font-src ${webview.cspSource}; script-src ${webview.cspSource};">
   <link href="${styleResetUri}" rel="stylesheet">
   <link href="${styleVSCodeUri}" rel="stylesheet">
+  <link href="${codiconsUri}" rel="stylesheet">
   <link href="${styleMainUri}" rel="stylesheet">
   <title>VSCode ACP Chat</title>
 </head>
@@ -412,18 +423,35 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   
   <div id="input-container">
     <div id="command-autocomplete" role="listbox" aria-label="Slash commands"></div>
-    <textarea 
-      id="input" 
-      rows="1" 
-      placeholder="Ask your agent... (type / for commands)" 
-      aria-label="Message input"
-      aria-describedby="input-hint"
-      aria-autocomplete="list"
-      aria-controls="command-autocomplete"
-    ></textarea>
-    <button id="send" aria-label="Send message" title="Send (Enter)">Send</button>
+    <div class="input-box-outer">
+      <div id="input-prefix" class="input-prefix" style="display: none;">
+        <i class="codicon codicon-terminal"></i>
+        <span id="mode-name" class="mode-badge"></span>
+      </div>
+      <textarea 
+        id="input" 
+        rows="1" 
+        placeholder="Ask your agent... (type / for commands)" 
+        aria-label="Message input"
+        aria-describedby="input-hint"
+        aria-autocomplete="list"
+        aria-controls="command-autocomplete"
+      ></textarea>
+      <div class="input-actions">
+        <span id="token-count" class="token-count" style="display: none;"></span>
+        <button id="settings-btn" class="icon-button" title="Settings" aria-label="Settings">
+          <i class="codicon codicon-settings"></i>
+        </button>
+        <button id="format-btn" class="icon-button" title="Format" aria-label="Format">
+          <i class="codicon codicon-sparkle"></i>
+        </button>
+        <button id="send" class="icon-button primary" title="Send (Enter)" aria-label="Send message">
+          <i class="codicon codicon-send"></i>
+        </button>
+      </div>
+    </div>
+    <div id="input-hint" class="input-hint">Press <b>Enter</b> to send, <b>Shift+Enter</b> for newline</div>
   </div>
-  <span id="input-hint" class="sr-only">Press Enter to send, Shift+Enter for new line, Escape to clear. Type / for slash commands.</span>
   
   <div id="options-bar" role="toolbar" aria-label="Session options">
     <select id="mode-selector" class="inline-select" style="display: none;" aria-label="Select mode"></select>

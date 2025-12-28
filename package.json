@@ -173,6 +173,7 @@
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.12.0",
+    "@vscode/codicons": "^0.0.44",
     "marked": "^17.0.1",
     "vscode-jsonrpc": "^8.2.0"
   },
