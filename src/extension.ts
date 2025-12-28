@@ -1,19 +1,23 @@
 import * as vscode from "vscode";
 import { ACPClient } from "./acp/client";
 import { ChatViewProvider } from "./views/chat";
+import { logger } from "./utils/logger";
 
 let acpClient: ACPClient | undefined;
 let chatProvider: ChatViewProvider | undefined;
 let statusBarItem: vscode.StatusBarItem | undefined;
 
 export function activate(context: vscode.ExtensionContext) {
-  console.log("VSCode ACP extension is now active");
+  logger.info("VSCode ACP extension is now active");
 
   context.subscriptions.push(
     vscode.commands.registerCommand("vscode-acp.openDevTools", () => {
       vscode.commands.executeCommand(
         "workbench.action.webview.openDeveloperTools"
       );
+    }),
+    vscode.commands.registerCommand("vscode-acp.showLogs", () => {
+      logger.show();
     })
   );
 
@@ -59,6 +63,7 @@ export function activate(context: vscode.ExtensionContext) {
           await acpClient?.connect();
           vscode.window.showInformationMessage("VSCode ACP connected");
         } catch (error) {
+          logger.error("Failed to connect to agent", error);
           vscode.window.showErrorMessage(`Failed to connect: ${error}`);
         }
       }
@@ -120,6 +125,6 @@ function updateStatusBar(
 }
 
 export function deactivate() {
-  console.log("VSCode ACP extension deactivating");
+  logger.info("VSCode ACP extension deactivating");
   acpClient?.dispose();
 }

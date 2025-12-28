@@ -70,6 +70,11 @@
         "title": "Clear Chat",
         "category": "ACP",
         "icon": "$(clear-all)"
+      },
+      {
+        "command": "vscode-acp.showLogs",
+        "title": "Show Logs",
+        "category": "ACP"
       }
     ],
     "viewsContainers": {
@@ -116,6 +121,10 @@
         },
         {
           "command": "vscode-acp.clearChat",
+          "when": "true"
+        },
+        {
+          "command": "vscode-acp.showLogs",
           "when": "true"
         }
       ]

@@ -9,7 +9,7 @@
         "kind": "build",
         "isDefault": true
       },
-      "problemMatcher": ["$tsc", "$esbuild-watch"],
+      "problemMatcher": ["$tsc"],
       "presentation": {
         "reveal": "silent"
       }
@@ -29,7 +29,7 @@
       "type": "npm",
       "script": "watch:esbuild",
       "group": "build",
-      "problemMatcher": "$esbuild-watch",
+      "problemMatcher": [],
       "isBackground": true,
       "label": "npm: watch:esbuild",
       "presentation": {

@@ -15,6 +15,7 @@ import {
   type AvailableCommand,
 } from "@agentclientprotocol/sdk";
 import { type AgentConfig, getDefaultAgent, isAgentAvailable } from "./agents";
+import { logger } from "../utils/logger";
 
 export interface SessionMetadata {
   modes: SessionModeState | null;
@@ -119,31 +120,43 @@ export class ACPClient {
     this.setState("connecting");
 
     try {
+      const spawnOptions: SpawnOptions = {
+        stdio: ["pipe", "pipe", "pipe"],
+        env: { ...process.env },
+      };
+
+      if (process.platform === "win32") {
+        spawnOptions.shell = true;
+      }
+
       this.process = this.spawnFn(
         this.agentConfig.command,
         this.agentConfig.args,
-        {
-          stdio: ["pipe", "pipe", "pipe"],
-          env: { ...process.env },
-        }
+        spawnOptions
       );
 
       this.process.stderr?.on("data", (data: Buffer) => {
         const text = data.toString();
-        console.error("[ACP stderr]", text);
+        logger.error(`[Agent stderr] ${text}`);
         this.stderrListeners.forEach((cb) => cb(text));
       });
 
       this.process.on("error", (error) => {
-        console.error("[ACP] Process error:", error);
+        logger.error("Process error", error);
         this.setState("error");
       });
 
       this.process.on("exit", (code) => {
-        console.log("[ACP] Process exited with code:", code);
+        logger.info(`Process exited with code: ${code}`);
         this.setState("disconnected");
         this.connection = null;
         this.process = null;
+      });
+
+      const spawnErrorPromise = new Promise<never>((_, reject) => {
+        this.process!.once("error", (err) => {
+          reject(new Error(`Failed to start agent process: ${err.message}`));
+        });
       });
 
       const stream = ndJsonStream(
@@ -155,30 +168,24 @@ export class ACPClient {
         requestPermission: async (
           params: RequestPermissionRequest
         ): Promise<RequestPermissionResponse> => {
-          console.log(
-            "[ACP] Permission request:",
-            JSON.stringify(params, null, 2)
-          );
+          logger.info("Permission request", params);
           const allowOption = params.options.find(
             (opt) => opt.kind === "allow_once" || opt.kind === "allow_always"
           );
           if (allowOption) {
-            console.log(
-              "[ACP] Auto-approving with option:",
-              allowOption.optionId
-            );
+            logger.info(`Auto-approving with option: ${allowOption.optionId}`);
             return {
               outcome: { outcome: "selected", optionId: allowOption.optionId },
             };
           }
-          console.log("[ACP] No allow option found, cancelling");
+          logger.warn("No allow option found, cancelling");
           return { outcome: { outcome: "cancelled" } };
         },
         sessionUpdate: async (params: SessionNotification): Promise<void> => {
           const updateType = params.update?.sessionUpdate ?? "unknown";
-          console.log(`[ACP] Session update: ${updateType}`);
+          logger.debug(`Session update: ${updateType}`);
           if (updateType === "agent_message_chunk") {
-            console.log("[ACP] CHUNK:", JSON.stringify(params.update));
+            logger.debug("Chunk received", params.update);
           }
           if (updateType === "available_commands_update") {
             const update = params.update as {
@@ -189,22 +196,19 @@ export class ACPClient {
             } else {
               this.pendingCommands = update.availableCommands;
             }
-            console.log(
-              "[ACP] Commands updated:",
-              update.availableCommands.length
-            );
+            logger.info(`Commands updated: ${update.availableCommands.length}`);
           }
           try {
             this.sessionUpdateListeners.forEach((cb) => cb(params));
           } catch (error) {
-            console.error("[ACP] Error in session update listener:", error);
+            logger.error("Error in session update listener", error);
           }
         },
       };
 
       this.connection = new ClientSideConnection(() => client, stream);
 
-      const initResponse = await this.connection.initialize({
+      const initPromise = this.connection.initialize({
         protocolVersion: 1,
         clientCapabilities: {},
         clientInfo: {
@@ -212,6 +216,8 @@ export class ACPClient {
           version: "0.0.1",
         },
       });
+
+      const initResponse = await Promise.race([initPromise, spawnErrorPromise]);
 
       this.setState("connected");
       return initResponse;
@@ -286,14 +292,10 @@ export class ACPClient {
         sessionId: this.currentSessionId,
         prompt: [{ type: "text", text: message }],
       });
-      console.log("[ACP] Prompt completed:", JSON.stringify(response, null, 2));
+      logger.debug("Prompt completed", response);
       return response;
     } catch (error) {
-      console.error("[ACP] Prompt error:", error);
-      if (error instanceof Error) {
-        console.error("[ACP] Error details:", error.message, error.stack);
-      }
-      console.error("[ACP] Raw error:", JSON.stringify(error, null, 2));
+      logger.error("Prompt error", error);
       throw error;
     }
   }

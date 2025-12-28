@@ -34,7 +34,7 @@ export const AGENTS: AgentConfig[] = [
     id: "gemini",
     name: "Gemini CLI",
     command: "gemini",
-    args: ["--acp"],
+    args: ["--experimental-acp"],
   },
   {
     id: "goose",

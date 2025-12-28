@@ -7,6 +7,7 @@ import {
   getFirstAvailableAgent,
 } from "../acp/agents";
 import type { SessionNotification } from "@agentclientprotocol/sdk";
+import { logger } from "../utils/logger";
 
 marked.setOptions({
   breaks: true,
@@ -180,15 +181,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
   private handleSessionUpdate(notification: SessionNotification): void {
     const update = notification.update;
-    console.log("[Chat] Session update received:", update.sessionUpdate);
+    logger.debug(`Session update received: ${update.sessionUpdate}`);
 
     if (update.sessionUpdate === "agent_message_chunk") {
-      console.log("[Chat] Chunk content:", JSON.stringify(update.content));
       if (update.content.type === "text") {
         this.streamingText += update.content.text;
         this.postMessage({ type: "streamChunk", text: update.content.text });
-      } else {
-        console.log("[Chat] Non-text chunk type:", update.content.type);
       }
     } else if (update.sessionUpdate === "tool_call") {
       this.postMessage({
@@ -237,17 +235,12 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       this.streamingText = "";
       this.stderrBuffer = "";
       this.postMessage({ type: "streamStart" });
-      console.log("[Chat] Sending message to ACP...");
+      logger.info("Sending message to ACP...");
       const response = await this.acpClient.sendMessage(text);
-      console.log(
-        "[Chat] Prompt response received:",
-        JSON.stringify(response, null, 2)
-      );
+      logger.debug("Prompt response received", response);
 
       if (this.streamingText.length === 0) {
-        console.warn("[Chat] No streaming text received from agent");
-        console.warn("[Chat] stderr buffer:", this.stderrBuffer);
-        console.warn("[Chat] Response:", JSON.stringify(response, null, 2));
+        logger.warn("No streaming text received from agent");
         this.postMessage({
           type: "error",
           text: "Agent returned no response. Check the ACP output channel for details.",
@@ -263,7 +256,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       }
       this.streamingText = "";
     } catch (error) {
-      console.error("[Chat] Error in handleUserMessage:", error);
+      logger.error("Error in handleUserMessage", error);
       const errorMessage =
         error instanceof Error ? error.message : JSON.stringify(error);
       this.postMessage({
@@ -279,6 +272,7 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
   private handleAgentChange(agentId: string): void {
     const agent = getAgent(agentId);
     if (agent) {
+      logger.info(`Changing agent to: ${agentId}`);
       this.acpClient.setAgent(agent);
       this.globalState.update(SELECTED_AGENT_KEY, agentId);
       this.hasSession = false;
@@ -289,35 +283,40 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
 
   private async handleModeChange(modeId: string): Promise<void> {
     try {
+      logger.info(`Changing mode to: ${modeId}`);
       await this.acpClient.setMode(modeId);
       this.sendSessionMetadata();
     } catch (error) {
-      console.error("[Chat] Failed to set mode:", error);
+      logger.error("Failed to set mode", error);
     }
   }
 
   private async handleModelChange(modelId: string): Promise<void> {
     try {
+      logger.info(`Changing model to: ${modelId}`);
       await this.acpClient.setModel(modelId);
       this.sendSessionMetadata();
     } catch (error) {
-      console.error("[Chat] Failed to set model:", error);
+      logger.error("Failed to set model", error);
     }
   }
 
   private async handleConnect(): Promise<void> {
     try {
       if (!this.acpClient.isConnected()) {
+        logger.info("Connecting to agent...");
         await this.acpClient.connect();
       }
       if (!this.hasSession) {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         const workingDir = workspaceFolder?.uri.fsPath || process.cwd();
+        logger.info(`Creating new session in: ${workingDir}`);
         await this.acpClient.newSession(workingDir);
         this.hasSession = true;
         this.sendSessionMetadata();
       }
     } catch (error) {
+      logger.error("Failed to connect", error);
       this.postMessage({
         type: "error",
         text: error instanceof Error ? error.message : "Failed to connect",
@@ -335,12 +334,13 @@ export class ChatViewProvider implements vscode.WebviewViewProvider {
       if (this.acpClient.isConnected()) {
         const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
         const workingDir = workspaceFolder?.uri.fsPath || process.cwd();
+        logger.info(`Creating new session for new chat in: ${workingDir}`);
         await this.acpClient.newSession(workingDir);
         this.hasSession = true;
         this.sendSessionMetadata();
       }
     } catch (error) {
-      console.error("[Chat] Failed to create new session:", error);
+      logger.error("Failed to create new session", error);
     }
   }
 
